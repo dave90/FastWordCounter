@@ -10,12 +10,15 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+  steps:
+        - name: Checkout code
+          uses: actions/checkout@v3
 
-      - name: Set up build environment
-        run: sudo apt-get update && sudo apt-get install -y build-essential && sudo pip install pytest
+        - name: Set up Docker
+          run: sudo apt-get update && sudo apt-get install -y docker.io
 
-      - name: Run make test
-        run: make test
+        - name: Build Docker image
+          run: docker build -t fwc .
+
+        - name: Run make test (Docker)
+          run: docker run -p 8124:8124 --rm fwc make test

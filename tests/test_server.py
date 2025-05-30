@@ -5,8 +5,8 @@ import pytest
 BIN="./fwc"
 BIN_CLI = "./fwc-cli"
 
-USE_VALGRIND = False
-USE_LEAKS = True
+USE_VALGRIND = True
+USE_LEAKS = False
 
 @pytest.fixture
 def server():

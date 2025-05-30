@@ -17,9 +17,8 @@ jobs:
           - name: Set up Docker
             run: sudo apt-get update && sudo apt-get install -y build-essential
 
-
           - name: Build Docker image
             run: docker build -t fwc .
 
           - name: Run make test (Docker)
-            run: docker run -p 8124:8124 --rm fwc make test
+            run: docker run --rm fwc make test

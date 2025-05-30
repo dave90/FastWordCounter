@@ -57,11 +57,6 @@ Run the service
 docker run -p 8124:8124 --rm fwc
 ```
 
-Run the cli
-```bash
-docker run -p 8124:8124 --rm fwc exec stdbuf -oL ./fwc-cli
-```
-
 Run tests inside Docker
 ```bash
 docker run -p 8124:8124 --rm fwc make test

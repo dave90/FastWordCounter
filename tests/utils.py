@@ -8,21 +8,8 @@ import select
 
 VALGRIND_LOG = "valgrind.out"
 
-# def start_server(executable_path:str):
-#     """Starts the server (optionally under Valgrind)."""
-#     command = [executable_path]
-
-#     process = subprocess.Popen(
-#         command,
-#         stdout=subprocess.PIPE,
-#         stderr=subprocess.PIPE,
-#         preexec_fn=os.setsid  # So we can kill the whole process group
-#     )
-
-#     # Wait a moment to ensure the server starts and binds to the port
-#     time.sleep(1)
-
-#     return process
+def str2bool(val):
+    return val.lower() in ('1', 'true', 'yes', 'on') if isinstance(val, str) else bool(val)
 
 def start_server(executable_path: str, use_valgrind: bool = False):
     """Starts the server (optionally under Valgrind)."""

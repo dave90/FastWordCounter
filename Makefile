@@ -8,6 +8,9 @@ BUILD_DIR = build
 BIN = fwc
 BIN_CLI = fwc-cli
 
+USE_VALGRIND ?= true
+USE_LEAKS ?= false
+
 $(BUILD_DIR):
 	mkdir -p $@
 
@@ -42,6 +45,6 @@ rebuild: clean all
 
 # Run Python tests on debug build
 test: debug
-	pytest tests
+	USE_VALGRIND=$(USE_VALGRIND) USE_LEAKS=$(USE_LEAKS) pytest tests
 
 .PHONY: all clean rebuild

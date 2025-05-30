@@ -1,12 +1,13 @@
-from tests.utils import start_server, stop_server, run_cli_commands
+from tests.utils import start_server, stop_server, run_cli_commands,str2bool
 import time
 import pytest
+import os
 
 BIN="./fwc"
 BIN_CLI = "./fwc-cli"
 
-USE_VALGRIND = True
-USE_LEAKS = False
+USE_VALGRIND = str2bool(os.getenv("USE_VALGRIND", "true"))
+USE_LEAKS = str2bool(os.getenv("USE_LEAKS", "false"))
 
 @pytest.fixture
 def server():

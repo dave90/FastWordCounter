@@ -6,7 +6,6 @@
 
 typedef struct {
     dict* dicts[MAX_FILES];
-    unsigned size;
 } DB;
 
 

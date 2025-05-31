@@ -1,0 +1,23 @@
+[
+    {
+        "test": "load bulk small",
+        "commands" : [
+            "load benchmarks/files/small_1.txt;",
+            "load benchmarks/files/small_2.txt;"
+        ]
+    },
+    {
+        "test": "load bulk medium",
+        "commands" : [
+            "load benchmarks/files/medium_1.txt;",
+            "load benchmarks/files/medium_2.txt;",
+            "load benchmarks/files/medium_3.txt;"
+        ]
+    },
+    {
+        "test": "load medium 1",
+        "commands" : [
+            "load benchmarks/files/medium_1.txt;"
+        ]
+    }
+]

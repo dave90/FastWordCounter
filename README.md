@@ -73,10 +73,26 @@ Run it:
 ./fwd-cli
 ```
 
+## 🧪 Benchmarking
+This project includes a benchmarking suite to evaluate the performance of various CLI test scenarios using the internal server (fwc) and CLI tool (fwc-cli).
+
+Benchmarks are located in the benchmarks/ directory, with:
+- benchmarks.json: JSON file containing the list of benchmark test cases.
+- output/: Folder where CSV files of benchmark results are saved.
+
+### 🏁 Running the Benchmark
+To execute all tests defined in benchmarks.json:
+```bash
+python benchmarks/benchmarks.py 
+```
+
+You can run a single test by passing its name as a command-line argument:
+```bash
+python benchmarks/benchmarks.py "load medium 1"
+```
 
 ## ✅ TODO Roadmap
  - Unload command
- - Benchmark
  - Optimize dictionary for small data sets
  - Implement slave failover
  - Persistent disk storage

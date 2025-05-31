@@ -1,0 +1,2 @@
+Test File,Total Requests,Successes,Avg Latency (ms),Min,Max,Std Dev
+small,5,5,0.0044,0.0035,0.0053,0.0007

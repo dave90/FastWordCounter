@@ -10,13 +10,13 @@
 
 DB* create_db(){
     DB *db = (DB*) malloc(sizeof(DB));
-    db->size = 0;
+    memset(db->dicts, 0, MAX_FILES*sizeof(dict*));
     return db;
 }
 
 
 void free_db(DB* db){
-    for(unsigned i=0;i<db->size;++i){
+    for(unsigned i=0;i<MAX_FILES;++i){
         LOG_INFO("Free dict %d", i);
         if(db->dicts[i] != 0)
             free_dict(db->dicts[i]);
@@ -24,6 +24,23 @@ void free_db(DB* db){
     LOG_INFO("Free db ");
     free(db);
     return;
+}
+
+int __unload_file(DB* db, char* filename){
+    int d = 0;
+    for(unsigned i=0;i<MAX_FILES;++i){
+        if(db->dicts[i] != 0 && strcmp(filename, db->dicts[i]->filename) == 0){
+           d = 1;
+           free_dict(db->dicts[i]);
+           db->dicts[i] = 0;
+        }
+    }
+    if(d == 0){
+        LOG_DEBUG("Filename not found %s", filename);
+        return -1;
+    }
+
+    return 1;
 }
 
 int __load_file(DB* db, char* filename){
@@ -37,18 +54,23 @@ int __load_file(DB* db, char* filename){
 
     LOG_DEBUG("Finding dict");
     dict* d = 0;
-    for(unsigned i=0;i<db->size;++i){
+    for(unsigned i=0;i<MAX_FILES;++i){
         if(db->dicts[i] != 0 && strcmp(filename, db->dicts[i]->filename) == 0){
            d =  db->dicts[i];
-           free(filename);
            break;
         }
     }
     if(d == 0){
         LOG_DEBUG("Creating new dict");
         //new filename create a new entry
-        d = create_dict(filename);
-        db->dicts[(db->size)++] = d;
+        char *nfilename = strdup(filename);
+        d = create_dict(nfilename);
+        // insert in the first slot avaliable
+        for(unsigned i=0;i<MAX_FILES;++i)
+            if(db->dicts[i] == 0){
+                db->dicts[i] = d;
+                break;
+            }
     }
 
     char word[READ_WORD_SIZE]; 
@@ -88,24 +110,27 @@ int __load_file(DB* db, char* filename){
 
 void __clear_db(DB* db){
     LOG_INFO("Clean db");
-    for(unsigned i=0;i<db->size;++i){
+    for(unsigned i=0;i<MAX_FILES;++i){
         if(db->dicts[i])
             free_dict(db->dicts[i]);
     }
 }
 
 int __query_file_db(DB* db,char* filename, char* word){
-    int r = -1;
+    int count = 0;
     LOG_DEBUG("Search word [%s] in file [%s]", word, filename);
     unsigned isAllFiles = strcmp(filename, "*") == 0;
-    for(unsigned i=0;i<db->size;++i){
-        if(isAllFiles || strcmp(db->dicts[i]->filename, filename ) == 0){
-            LOG_DEBUG("Dict founded for %s", filename);
-            r = get_dict_dimension_value(db->dicts[i], word);
+    for(unsigned i=0;i<MAX_FILES;++i){
+        if(db->dicts[i] && (isAllFiles || strcmp(db->dicts[i]->filename, filename ) == 0)){
+            LOG_DEBUG("Dict found for %s", filename);
+            int r = get_dict_dimension_value(db->dicts[i], word);
+            if (r >= 0) {
+                count += r;
+            }
         }
     }
-    LOG_DEBUG("Dict search result for %s: %d", word, r);
-    return r;
+    LOG_DEBUG("Dict search result for %s: %d", word, count);
+    return count;
 }
 
 int execute_command(ParsedCommand *cmd, DB *db, int connfd){
@@ -119,10 +144,22 @@ int execute_command(ParsedCommand *cmd, DB *db, int connfd){
             if (r<0){
                 LOG_ERROR("Error loading file %s", cmd->filename);
                 write_to_socket_fmt(connfd, "Error loading file %s %s", cmd->filename, END_TOKEN);
+                return r;
             }
             write_to_socket_fmt(connfd, "Loading file %s completed %s", cmd->filename, END_TOKEN);
             LOG_INFO("Loading file %s completed ", cmd->filename);
 
+            return r;
+        }
+        case CMD_UNLOAD: {
+            int r = __unload_file(db, cmd->filename);
+            if (r<0){
+                LOG_ERROR("Error unloading file %s", cmd->filename);
+                write_to_socket_fmt(connfd, "Error unloading file %s %s", cmd->filename, END_TOKEN);
+                return r;
+            }
+            write_to_socket_fmt(connfd, "Unloading file %s completed %s", cmd->filename, END_TOKEN);
+            LOG_INFO("Unloading file %s completed ", cmd->filename);
             return r;
         }
         case CMD_QUERY: {
@@ -130,11 +167,10 @@ int execute_command(ParsedCommand *cmd, DB *db, int connfd){
             if (r<0){
                 LOG_ERROR("Error query file %s", cmd->filename);
                 write_to_socket_fmt(connfd, "Error query file %s %s", cmd->filename, END_TOKEN);
+                return r;
             }
             write_to_socket_fmt(connfd, "%s: %d %s", cmd->word, r, END_TOKEN);
             LOG_INFO("Query file %s completed ", cmd->word);
-            free(cmd->filename);
-            free(cmd->word);
             return r;
         }
         default:

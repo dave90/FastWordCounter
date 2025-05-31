@@ -36,6 +36,14 @@ int parse_command(const char* input, ParsedCommand* cmd) {
         cmd->filename = (char*) malloc((len+1) * sizeof(char));
         strncpy(cmd->filename, token, len);
         return 0;
+    } else if (strcmp(token, "unload") == 0) {
+        token = strtok(NULL, " \t\n");
+        if (!token) return -1;
+        cmd->type = CMD_UNLOAD;
+        int len = strlen(token);
+        cmd->filename = (char*) malloc((len+1) * sizeof(char));
+        strncpy(cmd->filename, token, len);
+        return 0;
     } else if (strcmp(token, "query") == 0) {
         token = strtok(NULL, " \t\n");
         if (!token) return -1;
@@ -57,7 +65,7 @@ int parse_command(const char* input, ParsedCommand* cmd) {
     return -1;
 }
 
-void freeCommand(ParsedCommand p){
-    free(p.filename);
-    free(p.word);
+void free_cmd(ParsedCommand *p){
+    free(p->filename);
+    free(p->word);
 }

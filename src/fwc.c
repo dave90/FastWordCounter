@@ -18,7 +18,8 @@ void* parse_and_execute_commands(void* connfd_ptr){
     char *input =(char*) malloc(sizeof(char) * READ_SOCKET_BUFFER_SIZE);
     int size = READ_SOCKET_BUFFER_SIZE;
 
-    ParsedCommand cmd;
+    ParsedCommand cmd = {CMD_INVALID, 0 ,0};
+
     while(1){
 
         int c = read_from_socket(connfd, input, size -1);
@@ -36,6 +37,7 @@ void* parse_and_execute_commands(void* connfd_ptr){
         if(r<0){
             LOG_WARNING("Warning command [%s] not parsed", input);
             write_to_socket_fmt(connfd,  "Command not recognized: %s %s", input, END_TOKEN);
+            free_cmd(&cmd);
             continue;
         }
         if(cmd.type == CMD_EXIT){
@@ -43,7 +45,7 @@ void* parse_and_execute_commands(void* connfd_ptr){
             break;
         }
         execute_command(&cmd, db, connfd);
-
+        free_cmd(&cmd);
 
     }
     free(input);

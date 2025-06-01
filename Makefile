@@ -47,4 +47,8 @@ rebuild: clean all
 test: debug
 	USE_VALGRIND=$(USE_VALGRIND) USE_LEAKS=$(USE_LEAKS) pytest tests
 
+# Run Python tests on debug build
+benchmarks: rebuild
+	python benchmarks/benchmarks.py 
+
 .PHONY: all clean rebuild

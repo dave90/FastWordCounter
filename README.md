@@ -92,18 +92,22 @@ To execute all tests defined in benchmarks.json:
 python benchmarks/benchmarks.py 
 ```
 
+Or:
+```bash
+make benchmarks 
+```
+
 You can run a single test by passing its name as a command-line argument:
 ```bash
 python benchmarks/benchmarks.py "load medium 1"
 ```
 
 ## ✅ TODO Roadmap
- - Unload command
  - Optimize dictionary for small data sets
  - Implement slave failover
  - Persistent disk storage
- - Multi-client support with mutex protection
  - Use epool for server side
+ - Parallel read
 
 ## 🧰 Utilities
 

@@ -164,7 +164,6 @@ int get_dict_dimension_value(dict* d, char* key){
 }
 
 void free_dict(dict* d){
-    //print_dict(d);
     LOG_DEBUG("Free dict %s", d->filename);
     free(d->filename);
     entryDict *ced;

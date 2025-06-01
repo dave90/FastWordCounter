@@ -81,6 +81,12 @@ Benchmarks are located in the benchmarks/ directory, with:
 - output/: Folder where CSV files of benchmark results are saved.
 
 ### 🏁 Running the Benchmark
+
+Build:
+```bash
+make rebuild 
+```
+
 To execute all tests defined in benchmarks.json:
 ```bash
 python benchmarks/benchmarks.py 

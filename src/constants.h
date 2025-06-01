@@ -6,7 +6,10 @@
 #define LOG_LVL_ERROR 3
 
 // -------------- Can be updated --------------
-#define LOG_LEVEL 0 
+#ifndef LOG_LEVEL
+    #define LOG_LEVEL LOG_LVL_DEBUG  // default if not overridden
+#endif
+
 #define MAX_INPUT 1024 
 #define INIT_DICT_SIZE 2 
 #define BLOOM 0

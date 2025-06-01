@@ -102,7 +102,6 @@ int __load_file(DB* db, char* filename){
         char * key = strdup(word);
         dict_update(d, key, 1);
     }
-    print_dict(d);
 
     fclose(fp);
     return 1;

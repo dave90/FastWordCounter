@@ -1,6 +1,6 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -O2
-DEBUG_CFLAGS = -Wall -Wextra -g -O0
+CFLAGS = -Wall -Wextra -O2 -DLOG_LEVEL=LOG_LVL_INFO
+DEBUG_CFLAGS = -Wall -Wextra -g -O0 -DLOG_LEVEL=LOG_LVL_DEBUG
 LDFLAGS = -lpthread
 
 SRC_DIR = src

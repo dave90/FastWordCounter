@@ -4,9 +4,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <pthread.h>
 
 #include "log.h"
 #include "network.h"
+
 
 DB* create_db(){
     DB *db = (DB*) malloc(sizeof(DB));
@@ -14,14 +16,15 @@ DB* create_db(){
     return db;
 }
 
-
 void free_db(DB* db){
     for(unsigned i=0;i<MAX_FILES;++i){
         LOG_INFO("Free dict %d", i);
-        if(db->dicts[i] != 0)
+        if(db->dicts[i] != 0){
             free_dict(db->dicts[i]);
+        }
     }
     LOG_INFO("Free db ");
+
     free(db);
     return;
 }
@@ -29,12 +32,15 @@ void free_db(DB* db){
 int __unload_file(DB* db, char* filename){
     int d = 0;
     for(unsigned i=0;i<MAX_FILES;++i){
+        pthread_mutex_lock(&(db->dictLocks[i]));
         if(db->dicts[i] != 0 && strcmp(filename, db->dicts[i]->filename) == 0){
-           d = 1;
-           free_dict(db->dicts[i]);
-           db->dicts[i] = 0;
+            d = 1;
+            free_dict(db->dicts[i]);
+            db->dicts[i] = 0;
         }
+        pthread_mutex_unlock(&(db->dictLocks[i]));
     }
+
     if(d == 0){
         LOG_DEBUG("Filename not found %s", filename);
         return -1;
@@ -53,24 +59,38 @@ int __load_file(DB* db, char* filename){
 
 
     LOG_DEBUG("Finding dict");
-    dict* d = 0;
+    int dictIndex = -1;
+
     for(unsigned i=0;i<MAX_FILES;++i){
+        pthread_mutex_lock(&(db->dictLocks[i]));
         if(db->dicts[i] != 0 && strcmp(filename, db->dicts[i]->filename) == 0){
-           d =  db->dicts[i];
-           break;
-        }
+            dictIndex = i;
+            break;
+        }else
+            pthread_mutex_unlock(&(db->dictLocks[i]));
     }
-    if(d == 0){
+
+    if(dictIndex == -1){
         LOG_DEBUG("Creating new dict");
         //new filename create a new entry
         char *nfilename = strdup(filename);
-        d = create_dict(nfilename);
+        dict* d = create_dict(nfilename);
         // insert in the first slot avaliable
-        for(unsigned i=0;i<MAX_FILES;++i)
+        for(unsigned i=0;i<MAX_FILES;++i){
+            pthread_mutex_lock(&(db->dictLocks[i]));
             if(db->dicts[i] == 0){
                 db->dicts[i] = d;
+                dictIndex = i;
                 break;
-            }
+            }else
+                pthread_mutex_unlock(&(db->dictLocks[i]));
+        }
+
+        if(dictIndex == -1){
+            LOG_WARNING("No space left for new dictionary. File is not possible to load.");
+            free_dict(d);
+            return -1;
+        }
     }
 
     char word[READ_WORD_SIZE]; 
@@ -82,7 +102,7 @@ int __load_file(DB* db, char* filename){
                 word[index] = '\0';
                 LOG_DEBUG("Adding word %s",word);
                 char * key = strdup(word);
-                dict_update(d, key, 1);
+                dict_update(db->dicts[dictIndex], key, 1);
                 index = 0;
             }
         } else if (index < READ_WORD_SIZE - 1) {
@@ -93,34 +113,41 @@ int __load_file(DB* db, char* filename){
             word[sizeof(word) - 1] = '\0';
             LOG_WARNING("Truncated %s...\n", word);  // truncated word
             index = 0;
-            dict_update(d, word, 1);
+            dict_update(db->dicts[dictIndex], word, 1);
         }
     }
     // insert last word parsed
     if(index != 0){
         word[index] = '\0';
         char * key = strdup(word);
-        dict_update(d, key, 1);
+        dict_update(db->dicts[dictIndex], key, 1);
     }
-    print_dict(d);
 
     fclose(fp);
+    pthread_mutex_unlock(&db->dictLocks[dictIndex]);
+
+    
     return 1;
 } 
 
 void __clear_db(DB* db){
     LOG_INFO("Clean db");
     for(unsigned i=0;i<MAX_FILES;++i){
+        pthread_mutex_lock(&db->dictLocks[i]);
         if(db->dicts[i])
             free_dict(db->dicts[i]);
+        pthread_mutex_unlock(&db->dictLocks[i]);
     }
+
 }
+
 
 int __query_file_db(DB* db,char* filename, char* word){
     int count = 0;
     LOG_DEBUG("Search word [%s] in file [%s]", word, filename);
     unsigned isAllFiles = strcmp(filename, "*") == 0;
     for(unsigned i=0;i<MAX_FILES;++i){
+        pthread_mutex_lock(&(db->dictLocks[i]));
         if(db->dicts[i] && (isAllFiles || strcmp(db->dicts[i]->filename, filename ) == 0)){
             LOG_DEBUG("Dict found for %s", filename);
             int r = get_dict_dimension_value(db->dicts[i], word);
@@ -128,6 +155,7 @@ int __query_file_db(DB* db,char* filename, char* word){
                 count += r;
             }
         }
+        pthread_mutex_unlock(&(db->dictLocks[i]));
     }
     LOG_DEBUG("Dict search result for %s: %d", word, count);
     return count;

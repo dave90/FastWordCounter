@@ -62,10 +62,6 @@ def test_load_file(server, files):
         assert len(result) == 1
         assert result[0] == f"Loading file {file} completed"
 
-def test_query_file():
-    pass
-
-
 @pytest.mark.parametrize("files", [
     (
      ["tests/files/small_1.txt"],

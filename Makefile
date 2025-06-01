@@ -1,6 +1,6 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -O2
-DEBUG_CFLAGS = -Wall -Wextra -g -O0
+CFLAGS = -Wall -Wextra -O2 -DLOG_LEVEL=LOG_LVL_INFO
+DEBUG_CFLAGS = -Wall -Wextra -g -O0 -DLOG_LEVEL=LOG_LVL_DEBUG
 LDFLAGS = -lpthread
 
 SRC_DIR = src
@@ -46,5 +46,9 @@ rebuild: clean all
 # Run Python tests on debug build
 test: debug
 	USE_VALGRIND=$(USE_VALGRIND) USE_LEAKS=$(USE_LEAKS) pytest tests
+
+# Run Python tests on debug build
+benchmarks: rebuild
+	python benchmarks/benchmarks.py 
 
 .PHONY: all clean rebuild

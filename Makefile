@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -O2 -DLOG_LEVEL=LOG_LVL_INFO
-DEBUG_CFLAGS = -Wall -Wextra -g -O0 -DLOG_LEVEL=LOG_LVL_DEBUG
+DEBUG_CFLAGS = -Wall -Wextra -g -O0 -DLOG_LEVEL=LOG_LVL_DEBUG -DINIT_DICT_SIZE=64  -DSMALL_DICT_SIZE_BYTES=256 
 LDFLAGS = -lpthread
 
 SRC_DIR = src
@@ -17,7 +17,7 @@ $(BUILD_DIR):
 SRCS = $(wildcard $(SRC_DIR)/*.c)
 OBJS = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(SRCS))
 
-FWC_SRCS = $(SRC_DIR)/fwc.c $(SRC_DIR)/commandExecutor.c $(SRC_DIR)/commandParser.c $(SRC_DIR)/dict.c $(SRC_DIR)/log.c $(SRC_DIR)/network.c
+FWC_SRCS = $(SRC_DIR)/fwc.c $(SRC_DIR)/commandExecutor.c $(SRC_DIR)/commandParser.c $(SRC_DIR)/dict.c $(SRC_DIR)/log.c $(SRC_DIR)/network.c $(SRC_DIR)/fileReader.c
 FWC_OBJS = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(FWC_SRCS))
 
 CLI_SRCS = $(SRC_DIR)/fwc-cli.c $(SRC_DIR)/log.c $(SRC_DIR)/network.c

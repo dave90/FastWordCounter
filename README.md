@@ -103,11 +103,9 @@ python benchmarks/benchmarks.py "load medium 1"
 ```
 
 ## ✅ TODO Roadmap
- - Optimize dictionary for small data sets
  - Implement slave failover
  - Persistent disk storage
  - Use epool for server side
- - Parallel read
 
 ## 🧰 Utilities
 

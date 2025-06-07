@@ -5,14 +5,20 @@
 #include <string.h>
 #include <ctype.h>
 #include <pthread.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "log.h"
 #include "network.h"
+#include "fileReader.h"
 
 
 DB* create_db(){
     DB *db = (DB*) malloc(sizeof(DB));
     memset(db->dicts, 0, MAX_FILES*sizeof(dict*));
+    for(unsigned i=0;i<MAX_FILES;++i){
+        pthread_mutex_init( &(db->dictLocks[i]), NULL);
+    }
     return db;
 }
 
@@ -123,12 +129,98 @@ int __load_file(DB* db, char* filename){
         dict_update(db->dicts[dictIndex], key, 1);
     }
 
+
     fclose(fp);
     pthread_mutex_unlock(&db->dictLocks[dictIndex]);
 
     
     return 1;
 } 
+
+
+int __load_file_mt(DB* db, char* filename){
+    int fd = open(filename, O_RDONLY);
+    if (fd<0) {
+        LOG_ERROR("Error opening file %s",filename);
+        return -1;
+    }
+    LOG_INFO("Loading file %s",filename);
+
+    struct stat st;
+    fstat(fd, &st);
+    off_t file_size = st.st_size;
+
+    LOG_INFO("File size  %s %d",filename, file_size);
+
+    LOG_DEBUG("Finding dict");
+    int dictIndex = -1;
+
+    for(unsigned i=0;i<MAX_FILES;++i){
+        pthread_mutex_lock(&(db->dictLocks[i]));
+        if(db->dicts[i] != 0 && strcmp(filename, db->dicts[i]->filename) == 0){
+            dictIndex = i;
+            break;
+        }else
+            pthread_mutex_unlock(&(db->dictLocks[i]));
+    }
+
+    if(dictIndex == -1){
+        LOG_DEBUG("Creating new dict");
+        //new filename create a new entry
+        char *nfilename = strdup(filename);
+        dict* d = create_dict(nfilename);
+        // insert in the first slot avaliable
+        for(unsigned i=0;i<MAX_FILES;++i){
+            pthread_mutex_lock(&(db->dictLocks[i]));
+            if(db->dicts[i] == 0){
+                db->dicts[i] = d;
+                dictIndex = i;
+                break;
+            }else
+                pthread_mutex_unlock(&(db->dictLocks[i]));
+        }
+
+        if(dictIndex == -1){
+            LOG_WARNING("No space left for new dictionary. File is not possible to load.");
+            free_dict(d);
+            return -1;
+        }
+    }
+
+    // FileReaderArgs args = {.fd = fd, .db = db->dicts[dictIndex], .id = 0, .size= file_size, .start = 0};
+    // read_file_and_load( (void*)&args );
+
+    // Multithreaded reading
+    pthread_t threads[READ_THREADS];
+    FileReaderArgs args[READ_THREADS];
+
+    dict* temp_dicts[READ_THREADS];
+    off_t chunk_size = file_size / READ_THREADS;
+
+    for (int i = 0; i < READ_THREADS; ++i) {
+        off_t start = i * chunk_size;
+        off_t size = (i == READ_THREADS - 1) ? (file_size - start) : chunk_size; // last chunk read the remaining data
+        char *nfilename = strdup(filename);
+        temp_dicts[i] = create_dict(nfilename);
+        args[i].fd = fd;
+        args[i].start = start;
+        args[i].size = size;
+        args[i].db = temp_dicts[i];
+
+        pthread_create(&threads[i], NULL, read_file_and_load, &args[i]);
+    }
+
+    for (int i = 0; i < READ_THREADS; ++i) {
+        pthread_join(threads[i], NULL);
+        merge_dict(db->dicts[dictIndex], temp_dicts[i]);
+    }
+
+    close(fd);
+    pthread_mutex_unlock(&db->dictLocks[dictIndex]);
+
+    return 1;
+}
+
 
 void __clear_db(DB* db){
     LOG_INFO("Clean db");
@@ -168,7 +260,7 @@ int execute_command(ParsedCommand *cmd, DB *db, int connfd){
             write_to_socket_fmt(connfd,  "DB clean completed %s", END_TOKEN);
             return 1;
         case CMD_LOAD: {
-            int r = __load_file(db, cmd->filename);
+            int r = __load_file_mt(db, cmd->filename);
             if (r<0){
                 LOG_ERROR("Error loading file %s", cmd->filename);
                 write_to_socket_fmt(connfd, "Error loading file %s %s", cmd->filename, END_TOKEN);
@@ -191,6 +283,7 @@ int execute_command(ParsedCommand *cmd, DB *db, int connfd){
             return r;
         }
         case CMD_QUERY: {
+            LOG_INFO("Query file %s ", cmd->word);
             int r = __query_file_db(db, cmd->filename, cmd->word);
             if (r<0){
                 LOG_ERROR("Error query file %s", cmd->filename);

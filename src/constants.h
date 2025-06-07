@@ -21,7 +21,7 @@
     #define BLOOM 1
 #endif
 #ifndef READ_THREADS
-    #define READ_THREADS 5
+    #define READ_THREADS 10
 #endif
 #define RESIZE_DICT_T 0.8
 #define MAX_FILES 1024

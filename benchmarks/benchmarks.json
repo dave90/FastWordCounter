@@ -38,5 +38,11 @@
         "commands" : [
             "load benchmarks/files/large_1.txt;"
         ]
+    },
+    {
+        "test": "load large 2",
+        "commands" : [
+            "load benchmarks/files/large_2.txt;"
+        ]
     }
 ]

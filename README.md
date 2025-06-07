@@ -113,3 +113,10 @@ List processes attached to a specific port (MacOs):
 ```bash
 sudo lsof -iTCP -sTCP:LISTEN -n -P
 ```
+
+Debug:
+```bash
+lldb
+run
+bt
+```

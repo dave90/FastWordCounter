@@ -37,7 +37,8 @@ void* read_file_and_load(void* args){
                 while (i < to_read && (ch = buffer[i++]) != '\0' && !isspace(ch));
                 LOG_WARNING("Truncated %s...\n", word);  // truncated word
                 word[index] = '\0';
-                dict_update(fra->db, word, 1);
+                char * key = strdup(word);
+                dict_update(fra->db, key, 1);
                 index = 0;
             }
         }

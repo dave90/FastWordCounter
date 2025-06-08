@@ -82,6 +82,8 @@ Benchmarks are located in the benchmarks/ directory, with:
 
 ### 🏁 Running the Benchmark
 
+First download the benchmarks zip [file](https://drive.google.com/file/d/1n2_RBoptH1G6hJdv2i1fTd3Lte035L8B/view?usp=sharing) and place into benchamrks/files folder
+
 Build:
 ```bash
 make rebuild 

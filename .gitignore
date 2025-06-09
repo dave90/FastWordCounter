@@ -56,4 +56,5 @@ fwc
 fwc-cli
 __pycache__/
 benchmarks/output/
-benchmarks/files/*.txt
+benchmarks/files/
+.vscode/

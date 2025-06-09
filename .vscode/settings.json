@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "dict.h": "c",
-        "stdint.h": "c"
+        "stdint.h": "c",
+        "__node_handle": "c"
     }
 }

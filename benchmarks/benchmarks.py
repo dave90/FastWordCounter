@@ -47,6 +47,7 @@ def run_benchmarks(selected_tests: List[str] = None):
     tests = json.load(open(TEST_FILE,"r"))
     print(f"Tests: {tests}")
     all_results = []
+    previous_results = get_latest_csv_data()
     for test in tests:
         if selected_tests and test["test"] not in selected_tests:
             continue
@@ -54,6 +55,11 @@ def run_benchmarks(selected_tests: List[str] = None):
         results = run_test(test)
         avg = statistics.mean(results)
         test_name = test["test"]
+        previous_avg = previous_results.get(test_name)
+        percent_diff = ""
+        if previous_avg is not None and previous_avg > 0:
+            percent_diff = f"{((avg - previous_avg) / previous_avg * 100):+.2f}%"
+
         row = [
             test_name,
             NUM_TRY,
@@ -61,12 +67,32 @@ def run_benchmarks(selected_tests: List[str] = None):
             f"{avg:.4f}",
             f"{min(results):.4f}",
             f"{max(results):.4f}",
-            f"{statistics.stdev(results):.4f}" if len(results) > 1 else "0.00"
+            f"{statistics.stdev(results):.4f}" if len(results) > 1 else "0.00",
+            percent_diff
         ]
-        print(f"✅ Completed {test_name} : Avg = {avg:.2f} s, Min = {min(results):.2f} s, Max = {max(results):.2f} s, StdDev = {row[-1]}")
+        print(f"✅ Completed {test_name} : Avg = {avg:.2f} s, Min = {min(results):.2f} s, Max = {max(results):.2f} s, StdDev = {row[-1]} Δ = {percent_diff or 'N/A'}")
 
         all_results.append(row)
     return all_results
+
+
+def get_latest_csv_data():
+    try:
+        files = [f for f in os.listdir(CSV_OUTPUT_FOLDER) if f.startswith("benchmark_") and f.endswith(".csv")]
+        if not files:
+            return {}
+
+        latest_file = max(files, key=lambda f: os.path.getmtime(os.path.join(CSV_OUTPUT_FOLDER, f)))
+        previous_results = {}
+
+        with open(os.path.join(CSV_OUTPUT_FOLDER, latest_file), newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                previous_results[row["Test File"]] = float(row["Avg Latency (ms)"])
+        return previous_results
+    except Exception as e:
+        print(f"Failed to load previous benchmark: {e}")
+        return {}
 
 
 def log_to_csv(rows):
@@ -75,7 +101,7 @@ def log_to_csv(rows):
 
     csvfile = open(csv_file, mode='w', newline='')
     writer = csv.writer(csvfile)
-    writer.writerow(["Test File", "Total Requests", "Successes", "Avg Latency (ms)", "Min", "Max", "Std Dev"])
+    writer.writerow(["Test File", "Total Requests", "Successes", "Avg Latency (ms)", "Min", "Max", "Std Dev", "% Δ from Previous"])
     for row in rows:
         writer.writerow(row)
 

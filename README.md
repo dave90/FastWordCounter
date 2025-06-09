@@ -82,6 +82,8 @@ Benchmarks are located in the benchmarks/ directory, with:
 
 ### 🏁 Running the Benchmark
 
+First download the benchmarks zip [file](https://drive.google.com/file/d/1n2_RBoptH1G6hJdv2i1fTd3Lte035L8B/view?usp=sharing) and place into benchamrks/files folder
+
 Build:
 ```bash
 make rebuild 
@@ -103,15 +105,20 @@ python benchmarks/benchmarks.py "load medium 1"
 ```
 
 ## ✅ TODO Roadmap
- - Optimize dictionary for small data sets
  - Implement slave failover
  - Persistent disk storage
  - Use epool for server side
- - Parallel read
 
 ## 🧰 Utilities
 
 List processes attached to a specific port (MacOs):
 ```bash
 sudo lsof -iTCP -sTCP:LISTEN -n -P
+```
+
+Debug:
+```bash
+lldb
+run
+bt
 ```

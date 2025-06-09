@@ -217,6 +217,7 @@ int dict_update(dict* d, char* key, unsigned value ){
     hashType hash = __hash_key(key) & d->mask;
     if(bloomCheck == 0 ){
         //first time found key
+        LOG_DEBUG("Insert new node");
         __insert_dict_element(d, hash, key, value);
         return 0;
     }
@@ -228,6 +229,7 @@ int dict_update(dict* d, char* key, unsigned value ){
     // find if exist word
     while(ed){
         if(strcmp(ed->word, key)==0){
+            LOG_DEBUG("Update node");
             //update the value and exit
             ed->count += value;
             free(key); // free key already exist in dictionary
@@ -235,6 +237,7 @@ int dict_update(dict* d, char* key, unsigned value ){
         }
         ed = ed->next;
     }
+    LOG_DEBUG("Insert new node");
     __insert_dict_element(d, hash, key, value);
     return 0;
 }
@@ -332,8 +335,17 @@ void print_dict(dict* d){
 
 void merge_dict(dict* final, dict* d){
 
+    //init final htable if is none
+    if(final->htable == 0){
+        final->size = (INIT_DICT_SIZE > d->size)?INIT_DICT_SIZE:d->size;
+        final->size = final->size * READ_THREADS;
+        final->mask = final->size -1; // size is a power of 2
+        final->htable = (entryDict**) malloc(sizeof(entryDict*) * final->size); 
+        memset(final->htable, 0, sizeof(entryDict*) * final->size);
+    }
+
     if(d->htable == 0){
-        LOG_WARNING("SMALL TABLE MERGE");
+        LOG_WARNING("IS A SMALL TABLE");
         // iterate in small table
         uintptr_t ptr = (uintptr_t)d->smallHtable;
         size_t *t;
@@ -341,7 +353,7 @@ void merge_dict(dict* final, dict* d){
         for(unsigned i=0;i<d->used_size;++i){
             t = (size_t*) (ptr);
             w =  (char*)(t+2);
-            dict_update(final, strdup(w), t[0]);
+            dict_update(final, strdup(w), (unsigned)(t[0]));
 
             ptr += (sizeof(size_t)*2) + t[1] +1;
             ptr = ALIGN_UP(ptr, ALIGNMENT);
@@ -351,38 +363,49 @@ void merge_dict(dict* final, dict* d){
         free(d->smallHtable);
         free(d->filename);
         free(d);
+    
         return;
     }
 
+    // merge using htable
     entryDict *ced; // current entry in htable
-
+    entryDict *ned; // next entry in htable
     for(unsigned i =0;i<d->size;++i){
         ced = d->htable[i];
+        if(ced == 0)continue;
+        
         while(ced){
-            dict_update(final, ced->word, ced->count);
-            ced = ced->next;
+            ned = ced->next;
+            hashType hash = __hash_key(ced->word) & final->mask;
+            entryDict* ed = final->htable[hash];
+            __bloom( &(final->bloom), ced->word );
+
+            while(ed){
+                if(strcmp(ed->word, ced->word)==0){
+                    //update the value and exit
+                    ed->count += ced->count;
+                    free(ced->word);
+                    free(ced);
+                    ced = 0;
+                    break;
+                }
+                ed = ed->next;
+            }
+            // if ced is not 0 this node is not present so append it 
+            if(ced){
+                ed = final->htable[hash];
+                final->htable[hash] = ced;
+                ced->next = ed;
+            }
+            ced = ned;
         }
     }
 
     // destroy d
-    free(d->filename);
-    if(d->htable != 0){
-        entryDict *ced;
-        entryDict *ned;
-        for(unsigned i=0;i<d->size;++i){
-            LOG_DEBUG("Free bucket");
-            ced = d->htable[i];
-            while(ced){
-                ned = ced->next;
-                LOG_DEBUG("Free node");
-                free(ced);
-                ced = ned;
-            }
-        }
-    }
     LOG_DEBUG("Free dict %s completed", d->filename);
+    free(d->filename);
     free(d->htable);
     free(d->smallHtable);
-
     free(d);
+
 }

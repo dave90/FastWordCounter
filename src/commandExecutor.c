@@ -7,6 +7,7 @@
 #include <pthread.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "log.h"
 #include "network.h"
@@ -55,88 +56,20 @@ int __unload_file(DB* db, char* filename){
     return 1;
 }
 
-int __load_file(DB* db, char* filename){
-    FILE *fp = fopen(filename, "r");
-    if (!fp) {
-        LOG_ERROR("Error opening file %s",filename);
-        return -1;
-    }
-    LOG_INFO("Loading file %s",filename);
-
-
-    LOG_DEBUG("Finding dict");
-    int dictIndex = -1;
-
-    for(unsigned i=0;i<MAX_FILES;++i){
-        pthread_mutex_lock(&(db->dictLocks[i]));
-        if(db->dicts[i] != 0 && strcmp(filename, db->dicts[i]->filename) == 0){
-            dictIndex = i;
+// Helper function to adjust chunk size to next space
+off_t __find_next_space(int fd, off_t offset, off_t max_offset) {
+    char c;
+    off_t current = offset;
+    while (current < max_offset) {
+        lseek(fd, current, SEEK_SET);
+        if (read(fd, &c, 1) != 1)
             break;
-        }else
-            pthread_mutex_unlock(&(db->dictLocks[i]));
+        if (c == ' ')
+            return current + 1; // include space in the previous chunk
+        current++;
     }
-
-    if(dictIndex == -1){
-        LOG_DEBUG("Creating new dict");
-        //new filename create a new entry
-        char *nfilename = strdup(filename);
-        dict* d = create_dict(nfilename);
-        // insert in the first slot avaliable
-        for(unsigned i=0;i<MAX_FILES;++i){
-            pthread_mutex_lock(&(db->dictLocks[i]));
-            if(db->dicts[i] == 0){
-                db->dicts[i] = d;
-                dictIndex = i;
-                break;
-            }else
-                pthread_mutex_unlock(&(db->dictLocks[i]));
-        }
-
-        if(dictIndex == -1){
-            LOG_WARNING("No space left for new dictionary. File is not possible to load.");
-            free_dict(d);
-            return -1;
-        }
-    }
-
-    char word[READ_WORD_SIZE]; 
-    int ch, index = 0;
-
-    while ((ch = fgetc(fp)) != EOF) {
-        if (isspace(ch)) {
-            if (index > 0) {
-                word[index] = '\0';
-                LOG_DEBUG("Adding word %s",word);
-                char * key = strdup(word);
-                dict_update(db->dicts[dictIndex], key, 1);
-                index = 0;
-            }
-        } else if (index < READ_WORD_SIZE - 1) {
-            word[index++] = (char)ch;
-        } else {
-            // Word too long; discard rest of it safely
-            while ((ch = fgetc(fp)) != EOF && !isspace(ch));
-            word[sizeof(word) - 1] = '\0';
-            LOG_WARNING("Truncated %s...\n", word);  // truncated word
-            index = 0;
-            dict_update(db->dicts[dictIndex], word, 1);
-        }
-    }
-    // insert last word parsed
-    if(index != 0){
-        word[index] = '\0';
-        char * key = strdup(word);
-        dict_update(db->dicts[dictIndex], key, 1);
-    }
-
-
-    fclose(fp);
-    pthread_mutex_unlock(&db->dictLocks[dictIndex]);
-
-    
-    return 1;
-} 
-
+    return max_offset; // fallback if no space found
+}
 
 int __load_file_mt(DB* db, char* filename){
     int fd = open(filename, O_RDONLY);
@@ -145,6 +78,7 @@ int __load_file_mt(DB* db, char* filename){
         return -1;
     }
     LOG_INFO("Loading file %s",filename);
+    // clock_t start = clock();
 
     struct stat st;
     fstat(fd, &st);
@@ -193,13 +127,20 @@ int __load_file_mt(DB* db, char* filename){
     // Multithreaded reading
     pthread_t threads[READ_THREADS];
     FileReaderArgs args[READ_THREADS];
-
     dict* temp_dicts[READ_THREADS];
-    off_t chunk_size = file_size / READ_THREADS;
+
+    off_t starts[READ_THREADS + 1];
+    starts[0] = 0;
+    starts[READ_THREADS] = file_size;
+    for (int i = 1; i < READ_THREADS; ++i) {
+        off_t tentative_end = file_size  / READ_THREADS * i;
+        starts[i] = __find_next_space(fd, tentative_end, file_size);;
+    }
 
     for (int i = 0; i < READ_THREADS; ++i) {
-        off_t start = i * chunk_size;
-        off_t size = (i == READ_THREADS - 1) ? (file_size - start) : chunk_size; // last chunk read the remaining data
+        off_t start = starts[i];
+        off_t size = starts[i + 1] - start;
+
         char *nfilename = strdup(filename);
         temp_dicts[i] = create_dict(nfilename);
         args[i].fd = fd;
@@ -214,9 +155,15 @@ int __load_file_mt(DB* db, char* filename){
         pthread_join(threads[i], NULL);
         merge_dict(db->dicts[dictIndex], temp_dicts[i]);
     }
+    //resize 
+    resize(db->dicts[dictIndex]);
 
     close(fd);
     pthread_mutex_unlock(&db->dictLocks[dictIndex]);
+
+    // clock_t delta = clock() - start;
+    // double time_spent = ((double)delta) / CLOCKS_PER_SEC;
+    // printf("Time taken reading file: %.6f seconds\n", time_spent);
 
     return 1;
 }

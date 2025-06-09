@@ -10,9 +10,8 @@
     #define LOG_LEVEL LOG_LVL_DEBUG 
 #endif
 
-#define MAX_INPUT 1024 
 #ifndef INIT_DICT_SIZE
-    #define INIT_DICT_SIZE 1024  
+    #define INIT_DICT_SIZE 1024*10  
 #endif
 #ifndef SMALL_DICT_SIZE_BYTES
     #define SMALL_DICT_SIZE_BYTES 256*(256+32+32)
@@ -25,7 +24,7 @@
 #endif
 #define RESIZE_DICT_T 0.8
 #define MAX_FILES 1024
-#define READ_WORD_SIZE 256
+#define READ_WORD_SIZE 1024
 #define DEFAULT_PORT 8124
 #define READ_SOCKET_BUFFER_SIZE 1024
 #define END_TOKEN "END."

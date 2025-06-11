@@ -12,15 +12,15 @@ sleep 2
 
 # Run the client and pass command to its stdin
 # (echo "load benchmarks/files/large_2.txt;" | ./fwc-cli)&
-(echo "load benchmarks/files/small_3.txt;" | ./fwc-cli)&
+(echo "load benchmarks/files/large_2.txt;" | ./fwc-cli)&
 CLIENTPID=$!
-sleep 20
+sleep 60
 kill $CLIENTPID
 
 wait $CLIENTPID 2>/dev/null
-(echo "query benchmarks/files/small_3.txt the;" | ./fwc-cli)&
+(echo "query benchmarks/files/large_2.txt the;" | ./fwc-cli)&
 CLIENTPID=$!
-sleep 5
+sleep 2
 
 
 # kill the server and client (if it doesn't exit on its own)

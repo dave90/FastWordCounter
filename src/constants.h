@@ -11,10 +11,10 @@
 #endif
 
 #ifndef INIT_DICT_SIZE
-    #define INIT_DICT_SIZE 1024*10  
+    #define INIT_DICT_SIZE 32768 // must be power of 2  
 #endif
 #ifndef SMALL_DICT_SIZE_BYTES
-    #define SMALL_DICT_SIZE_BYTES 256*(256+32+32)
+    #define SMALL_DICT_SIZE_BYTES 0*(256+32+32)
 #endif
 #ifndef BLOOM
     #define BLOOM 1
@@ -22,6 +22,7 @@
 #ifndef READ_THREADS
     #define READ_THREADS 10
 #endif
+#define BLOOM_SIZE 128  // in bytes → 1024 bits
 #define RESIZE_DICT_T 0.8
 #define MAX_FILES 1024
 #define READ_WORD_SIZE 1024

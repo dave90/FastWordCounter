@@ -1,24 +1,27 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdlib.h>
 
-typedef unsigned long hashType;
+#include "constants.h"
+
+typedef size_t hashType;
 
 typedef struct entryDictStruct {
-    struct entryDictStruct *next;
     char *word;
     unsigned count;
+    uint8_t metadata; // metadata of the entry, first bit if it is free, 7 bits first part of the hash
 } entryDict;
 
 typedef struct {
     char * filename;
-    entryDict **htable;
+    entryDict *htable;
     void* smallHtable;
     unsigned size;
     unsigned used_size;
     unsigned elements;
     unsigned mask;
-    uint64_t bloom;
+    uint8_t bloom[BLOOM_SIZE];
 } dict;
 
 dict* create_dict(char* filename);

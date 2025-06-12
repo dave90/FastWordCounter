@@ -1,7 +1,9 @@
 {
-    "files.associations": {
-        "dict.h": "c",
-        "stdint.h": "c",
-        "__node_handle": "c"
-    }
+    "makefile.launchConfigurations": [
+        {
+            "cwd": "/Users/davidefusca/git/FastWordCounter",
+            "binaryPath": "/Users/davidefusca/git/FastWordCounter/fwc",
+            "binaryArgs": []
+        }
+    ]
 }

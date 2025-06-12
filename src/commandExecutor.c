@@ -129,12 +129,16 @@ int __load_file_mt(DB* db, char* filename){
     FileReaderArgs args[READ_THREADS];
     dict* temp_dicts[READ_THREADS];
 
+    
     off_t starts[READ_THREADS + 1];
     starts[0] = 0;
     starts[READ_THREADS] = file_size;
+    LOG_DEBUG("Read starts: %d\t",starts[0]);
+    LOG_DEBUG("\t%d",starts[1]);
     for (int i = 1; i < READ_THREADS; ++i) {
         off_t tentative_end = file_size  / READ_THREADS * i;
-        starts[i] = __find_next_space(fd, tentative_end, file_size);;
+        starts[i] = __find_next_space(fd, tentative_end, file_size);
+        LOG_DEBUG("\t%d",starts[i]);
     }
 
     for (int i = 0; i < READ_THREADS; ++i) {
